@@ -1,0 +1,54 @@
+# Ignore Django stuff:
+*.pyc
+*.pyo
+__pycache__/
+venv/
+# Ignore Django migrations files:
+migrations/*.py
+
+# Ignore Django static files:
+static/static/*
+
+# Ignore user uploaded files:
+media/*
+
+# Ignore Node.js build files if using npm
+node_modules/
+npm-debug.log
+package-lock.json
+
+# Ignore OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs
+Thumbs.db
+com.apple.TimeMachine/
+com.apple.TimeMachine.Local/
+com.apple.TimeMachine.Snapshot/
+com.apple.TimeMachine.TMContainer/
+com.apple.notes
+com.apple.notificationcenter
+com.apple.safari
+com.apple.silverlight
+com.apple.systempreferences
+com.google.Chrome
+org.chromium.Chromium
+org.mozilla.firefox
+
+# Ignore Xcode derived data and machine specific files
+DerivedData/
+Library/Caches/
+*.pbxuser
+*.mode1
+*.mode1v3
+*.pbxuser
+*.perspective
+*.xcworkspace
+xcuserdata/
+Project.xcworkspace
+xcshareddata/
+Build/Intermediates.noindex
+Build/Products/
