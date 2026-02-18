@@ -6,6 +6,8 @@ venv/
 # Ignore Django migrations files:
 migrations/*.py
 
+.env
+
 # Ignore Django static files:
 static/static/*
 
