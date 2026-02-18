@@ -1,5 +1,6 @@
 import random
-from .serializers import UserSerializer, UserLoginSerializer, ForgotPasswordSerializer
+import uuid
+from .serializers import UserSerializer, UserLoginSerializer, ForgotPasswordSerializer, VerifyOTPSerializer, ResetPasswordSerializer
 from rest_framework import status
 from django.contrib.auth import get_user_model, authenticate
 from maantra.base import NewAPIView
@@ -137,4 +138,70 @@ class ForgotPasswordAPIView(NewAPIView):
             return Response({"message": "OTP sent successfully"})
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class VerifyOTPAPIView(NewAPIView):
+    serializer_class = VerifyOTPSerializer
+    
+    def post(self, request):
+        '''
+        **This API is for User Verify OTP.**\n
+        Enter email and otp to reset your password.
+        
+        Required Fields: \n
+        - email \n
+        - otp
+        '''
+        serializer = VerifyOTPSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            otp = serializer.validated_data['otp']
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return Response({"error": "User does not exist"}, status=status.HTTP_400_BAD_REQUEST)
             
+            if user.otp == otp:
+                reset_token = uuid.uuid4()
+                user.forgot_password_token = str(reset_token)
+                user.otp = None
+                user.save()
+                return Response({"message": "OTP verified successfully", "reset_token": f"{reset_token}"})
+            else:
+                return Response({"error": "Invalid OTP"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ResetPasswordAPIView(NewAPIView):
+    serializer_class = ResetPasswordSerializer
+    def post(self, request):
+        '''
+        **This API is for User Reset Password.**\n
+        Enter email, reset token and new password to reset your password.
+        
+        Required Fields: \n
+        - email \n
+        - reset_token \n
+        - password \n
+        - confirm_password
+        '''
+        serializer = ResetPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            reset_token = serializer.validated_data['reset_token']
+            password = serializer.validated_data['password']
+            confirm_password = serializer.validated_data['confirm_password']
+            
+            try:
+                user = User.objects.get(email=email, forgot_password_token=reset_token)
+            except User.DoesNotExist:
+                return Response({"error": "Invalid password reset token"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if password != confirm_password:
+                return Response({"error": "Passwords do not match"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user.set_password(password)
+            user.forgot_password_token = None
+            user.save()
+            return Response({"message": "Password reset successfully"})
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
