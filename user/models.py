@@ -5,7 +5,7 @@ from user.managers import CustomUserManager
 class User(AbstractUser):
     username = None
     email = models.EmailField(unique=True)
-    contact = models.CharField(max_length=15)
+    contact = models.CharField(max_length=15, blank=True, null=True)
     otp = models.CharField(max_length=6, blank=True, null=True)
     forgot_password_token = models.CharField(max_length=300, blank=True, null=True)
     

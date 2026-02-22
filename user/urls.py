@@ -7,4 +7,5 @@ urlpatterns = [
     path('forgot_password', ForgotPasswordAPIView.as_view(), name='forgot_password'),
     path('verify_otp', VerifyOTPAPIView.as_view(), name='verify_otp'),
     path('reset_password', ResetPasswordAPIView.as_view(), name='reset_password'),
+    path('auth/social/', include('djoser.social.urls')),
     ]
