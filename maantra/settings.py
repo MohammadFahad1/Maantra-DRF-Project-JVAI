@@ -209,3 +209,7 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ('rest_framework_simplejwt.tokens.AccessToken',)
 }
+
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_TIMEZONE = "Asia/Dhaka"
+CELERY_RESULT_EXTENDED=True

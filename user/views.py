@@ -4,34 +4,13 @@ from .serializers import UserSerializer, UserLoginSerializer, ForgotPasswordSeri
 from rest_framework import status
 from django.contrib.auth import get_user_model, authenticate
 from maantra.base import NewAPIView
-from maantra.response import error_response, s_406, s_201
+from maantra.response import s_406, s_201
 from rest_framework.response import Response
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.conf import settings
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
+from user.tasks import send_otp_email
 User = get_user_model()
-
-def send_otp_email(email, otp):
-    subject = "Reset your Maantra Password"
-    from_email = settings.EMAIL_HOST_USER
-    
-    context = {
-        "otp": otp
-    }
-        
-    html_content = render_to_string("otp_template.html", context)
-    message = strip_tags(html_content)
-    
-    if subject and from_email and email:
-        try:
-            send_mail(subject, message, from_email, [email])
-            context['result'] = 'Email sent successfully'
-        except Exception as e:
-            context['result'] = f'Error sending email: {e}'
 
 # Create your views here.
 class UserRegistrationAPIView(NewAPIView):
@@ -134,7 +113,7 @@ class ForgotPasswordAPIView(NewAPIView):
             # user = User.objects.get(email=email)
             user.otp = otp
             user.save()
-            send_otp_email(email, otp)
+            send_otp_email.delay(email, otp)
             return Response({"message": "OTP sent successfully"})
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
