@@ -1,12 +1,12 @@
 from django.shortcuts import render, get_object_or_404
 from maantra.base import NewAPIView
-from product.serializers import ProductSerializer
+from product.serializers import ProductSerializer, ProductCreateSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from product.models import Product, ProductImage, Category, Size, Review
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import ProductFilter
-from django.db.models import Sum
+from django.db.models import Sum, Avg
 
 # Create your views here.
 class ProductsAPIView(NewAPIView):
@@ -31,7 +31,7 @@ class ProductsAPIView(NewAPIView):
         - category \n
         - sort ('price', 'created_at', 'total_sold') \n
         '''
-        queryset = Product.objects.select_related('category').annotate(total_sold=Sum('order__quantity')).all()
+        queryset = Product.objects.select_related('category').prefetch_related('sizes', 'images').annotate(total_sold=Sum('order__quantity'), avg_rating=Avg('reviews__rating'))
 
         filterset = ProductFilter(request.GET, queryset=queryset)
         
@@ -41,7 +41,33 @@ class ProductsAPIView(NewAPIView):
         serializer = ProductSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-""" 
+    # def post(self, request):
+    #     '''
+    #     **Add Product or Create Product **\n
+    #     It will add a new product. Only Admin can use this API. Request Type: POST
+        
+    #     Required Fields: \n
+    #     - name \n
+    #     - description \n
+    #     - price \n
+    #     - sale (default is 0, means no sale!)\n
+    #     - stock \n
+    #     - sizes \n
+    #     - category \n
+    #     '''
+    #     if not self.request.user.is_staff:
+    #         return Response({"error": "You are not authorized to add a product"}, status=status.HTTP_403_FORBIDDEN)
+    #     serializer = ProductCreateSerializer(data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  
+
+
+class ProductCreateAPIView(NewAPIView):
+    serializer_class = ProductCreateSerializer
+    http_method_names = ['post']
+    
     def post(self, request):
         '''
         **Add Product or Create Product **\n
@@ -58,18 +84,15 @@ class ProductsAPIView(NewAPIView):
         '''
         if not self.request.user.is_staff:
             return Response({"error": "You are not authorized to add a product"}, status=status.HTTP_403_FORBIDDEN)
-        serializer = ProductSerializer(data=request.data)
+        serializer = ProductCreateSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  
-"""
-        
-
 
 
 class ProductDetailAPIView(NewAPIView):
-    queryset = Product.objects.prefetch_related('category', 'sizes', 'order', 'images').annotate(total_sold=Sum('order__quantity')).all()
+    queryset = Product.objects.select_related('category').prefetch_related('sizes', 'order', 'images', 'reviews').annotate(total_sold=Sum('order__quantity')).all()
     serializer_class = ProductSerializer
     http_method_names = ['get', 'patch', 'delete']
     
