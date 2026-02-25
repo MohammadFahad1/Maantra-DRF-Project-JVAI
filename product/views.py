@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from maantra.base import NewAPIView
-from product.serializers import ProductSerializer, ProductCreateSerializer
+from product.serializers import ProductSerializer, ProductCreateSerializer, CategorySerializer
 from rest_framework import status
 from rest_framework.response import Response
 from product.models import Product, ProductImage, Category, Size, Review
@@ -8,7 +8,95 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .filters import ProductFilter
 from django.db.models import Sum, Avg
 
-# Create your views here.
+# Category List
+class CategoryListAPIView(NewAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    http_method_names = ['get', 'post']
+    
+    def get(self, request):
+        '''
+        **Get all Categories **\n
+        It will return all categories.
+        
+        Note: It's public API anyone can use this API.
+        '''
+        queryset = Category.objects.all()
+        serializer = CategorySerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def post(self, request):
+        '''
+        **Add Category or Create Category **\n
+        It will add a new category. Only Admin can use this API. Request Type: POST
+        
+        Required Fields: \n
+        - name \n
+        - image \n
+        '''
+        if not self.request.user.is_staff:
+            return Response({"error": "You are not authorized to add a category"}, status=status.HTTP_403_FORBIDDEN)
+        serializer = CategorySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Category Detail, Update and Delete
+class CategoryDetailAPIView(NewAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    http_method_names = ['get', 'patch', 'delete']
+    
+    def get(self, request, pk):
+        '''
+        **Get Category Details **\n
+        It will return category details.
+        
+        Request Type: GET
+        
+        Response Type: JSON
+        '''
+        category = get_object_or_404(self.queryset, pk=pk)
+        serializer = self.serializer_class(category)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def patch(self, request, pk):
+        '''
+        **This API will partially update a category **\n
+        It will return category details after update is complete with a status code 200. Only Admin can use this API.
+        
+        Request Type: PATCH
+        
+        Response Type: JSON with status code 200 (is successfully updated)
+        '''
+        if not self.request.user.is_staff:
+            return Response({"error": "You are not authorized to update a category"}, status=status.HTTP_403_FORBIDDEN)
+        category = get_object_or_404(self.queryset, pk=pk)
+        serializer = self.serializer_class(category, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, pk):
+        '''
+        **Delete Category **\n
+        It will delete a category. Only Admin can use this API.
+        
+        Request Type: DELETE
+        
+        Response Type: JSON with status code 204 No Content
+        '''
+        if not self.request.user.is_staff:
+            return Response({"error": "You are not authorized to delete a category"}, status=status.HTTP_403_FORBIDDEN)
+        category = get_object_or_404(self.queryset, pk=pk)
+        category.delete()
+        return Response({"message": "Category deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+
+
+# Product List
 class ProductsAPIView(NewAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
@@ -63,7 +151,7 @@ class ProductsAPIView(NewAPIView):
     #         return Response(serializer.data, status=status.HTTP_201_CREATED)
     #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  
 
-
+# Product Create
 class ProductCreateAPIView(NewAPIView):
     serializer_class = ProductCreateSerializer
     http_method_names = ['post']
@@ -90,7 +178,7 @@ class ProductCreateAPIView(NewAPIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  
 
-
+# Product Detail, Update and Delete
 class ProductDetailAPIView(NewAPIView):
     queryset = Product.objects.select_related('category').prefetch_related('sizes', 'order', 'images', 'reviews').annotate(total_sold=Sum('order__quantity')).all()
     serializer_class = ProductSerializer
