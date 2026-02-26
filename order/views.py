@@ -48,6 +48,7 @@ class CartAPIView(NewAPIView):
             return Response({"message": "Cart deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         return Response({"error": "Cart not found"}, status=status.HTTP_404_NOT_FOUND)
 
+# Add Product to Cart
 class CartItemAPIView(NewAPIView):
     serializer_class = AddToCartSerializer
     permission_classes = [IsAuthenticated]
