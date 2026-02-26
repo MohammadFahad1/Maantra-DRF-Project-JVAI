@@ -98,8 +98,6 @@ class CategoryDetailAPIView(NewAPIView):
         category.delete()
         return Response({"message": "Category deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
-
-
 # Product List
 class ProductsAPIView(NewAPIView):
     queryset = Product.objects.select_related('category') \
@@ -111,7 +109,7 @@ class ProductsAPIView(NewAPIView):
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_class = ProductFilter
-    search_fields = ['name']
+    search_fields = ['name', 'description']
     ordering_fields = ['price', 'created_at', 'total_sold']
     ordering = ['-created_at']
     pagination_class = ProductListPagination
@@ -124,7 +122,8 @@ class ProductsAPIView(NewAPIView):
         
         Query param Fields: \n
         - category_id (Enter the category id and it will display the products of that category) \n
-        - sort ('price', 'created_at', 'total_sold') # For descending order use '-' as prefix \n
+        - ordering ('price', 'created_at', 'total_sold') # For descending order use '-' as prefix \n
+        - search (Search by product name & description) \n
         '''
         query = request.GET.get('ordering', '-created_at')
         queryset = Product.objects.select_related('category') \
@@ -168,8 +167,6 @@ class ProductCreateAPIView(NewAPIView):
         - description \n
         - price \n
         - sale (default is 0, means no sale!)\n
-        - stock \n
-        - sizes \n
         - category \n
         '''
         if not self.request.user.is_staff:
@@ -182,7 +179,7 @@ class ProductCreateAPIView(NewAPIView):
 
 # Product Detail, Update and Delete
 class ProductDetailAPIView(NewAPIView):
-    queryset = Product.objects.select_related('category').prefetch_related('sizes', 'order', 'images', 'reviews').annotate(total_sold=Sum('order__quantity')).all()
+    queryset = Product.objects.select_related('category').prefetch_related('variants', 'variants__colours', 'order', 'images', 'reviews').annotate(total_sold=Sum('order__quantity')).all()
     serializer_class = ProductSerializer
     http_method_names = ['get', 'patch', 'delete']
     
@@ -197,6 +194,8 @@ class ProductDetailAPIView(NewAPIView):
         Response Type: JSON
         '''
         product = get_object_or_404(self.queryset, pk=pk)
+        product.visits += 1
+        product.save()
         serializer = self.serializer_class(product)
         return Response(serializer.data, status=status.HTTP_200_OK)
     

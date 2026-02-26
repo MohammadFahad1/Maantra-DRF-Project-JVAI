@@ -41,7 +41,7 @@ class ProductSerializer(serializers.ModelSerializer):
     rating = serializers.ReadOnlyField(source='avg_rating')
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'price', 'sale', 'variants', 'category', 'images', 'rating', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'description', 'price', 'sale', 'variants', 'category', 'images', 'rating', 'visits', 'created_at', 'updated_at']
         
         extra_kwargs = {
                 'images': {'read_only': True},
@@ -52,7 +52,7 @@ class ProductSerializer(serializers.ModelSerializer):
 class ProductCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'price', 'sale', 'stock', 'sizes', 'category']
+        fields = ['id', 'name', 'description', 'price', 'sale', 'category', 'created_at', 'updated_at']
         
         extra_kwargs = {
                 'created_at': {'read_only': True},
