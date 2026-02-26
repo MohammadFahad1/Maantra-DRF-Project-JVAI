@@ -3,7 +3,7 @@ from maantra.base import NewAPIView
 from product.serializers import ProductSerializer, ProductCreateSerializer, CategorySerializer
 from rest_framework import status
 from rest_framework.response import Response
-from product.models import Product, ProductImage, Category, Size, Review
+from product.models import Product, ProductImage, Category, Review
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import ProductFilter
 from django.db.models import Sum, Avg
