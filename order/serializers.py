@@ -25,6 +25,8 @@ class CreateCartSerializer(serializers.ModelSerializer):
         }
 
 class AddToCartSerializer(serializers.ModelSerializer):
+    size = serializers.IntegerField()
+    colour = serializers.IntegerField()
     class Meta:
         model = CartItem
-        fields = ['id', 'product', 'quantity']
+        fields = ['id', 'product', 'quantity', 'size', 'colour']

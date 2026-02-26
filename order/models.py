@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, MaxValueValidator
-from product.models import Product
+from product.models import Product, Variant, VariantColour
 User = get_user_model()
 
 # Create your models here.
@@ -23,6 +23,8 @@ class Cart(models.Model):
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='cart')
+    variant = models.ForeignKey(Variant, on_delete=models.CASCADE, related_name='cartitem')
+    colour = models.ForeignKey(VariantColour, on_delete=models.CASCADE, related_name='cartitem')
     quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -58,7 +60,6 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete = models.CASCADE, related_name='order')
-    # size = models.ForeignKey(Size, on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(1)])
     quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(1)])

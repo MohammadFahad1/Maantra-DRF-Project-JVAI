@@ -2,7 +2,7 @@ from django.shortcuts import render
 from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer
 from maantra.base import NewAPIView
 from order.models import Cart, CartItem
-from product.models import Product, VariantColour
+from product.models import Product, VariantColour, Variant
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -61,11 +61,13 @@ class CartItemAPIView(NewAPIView):
         Required Fields: \n
         - product \n
         - quantity \n
+        - size \n
+        - colour \n
         '''
         product_id = request.data.get('product')
-        quantity = request.data.get('quantity', 1)
-        size = request.data.get('size')
-        colour = request.data.get('colour')
+        quantity = int(request.data.get('quantity', 1))
+        size = int(request.data.get('size'))
+        colour = int(request.data.get('colour'))
         
         if not all(['product', 'quantity', 'size', 'colour']):
             return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -75,21 +77,15 @@ class CartItemAPIView(NewAPIView):
         except Product.DoesNotExist:
             return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
         
-        try:
-            cart = Cart.objects.get(user=request.user)
-        except Cart.DoesNotExist:
-            return Response({"error": "Cart not found"}, status=status.HTTP_404_NOT_FOUND)
+        cart = Cart.objects.get_or_create(user=request.user)[0]
+        variant = get_object_or_404(Variant, id=size)
         
-        # if Cart.objects.prefetch_related('items').filter(user=request.user).items.filter(product_id=product_id).variants.filter(size=size).colours.filter(colour=colour).exists():
-        #     return Response({"error": "Product with same size and colour already exists in cart"}, status=status.HTTP_400_BAD_REQUEST)
-        # Assuming you have the IDs from the request
         exists = CartItem.objects.filter(
             cart__user=request.user,
             product_id=product_id,
-            variant_colour__variant__size=size,
-            variant_colour__colour=colour
+            product__variants__size=size,
+            product__variants__colours=colour
         ).exists()
-        
         
         if exists:
             return Response(
@@ -100,22 +96,19 @@ class CartItemAPIView(NewAPIView):
         vc = get_object_or_404(
             VariantColour, 
             variant__product_id=product_id, 
-            variant__size=size, 
-            colour=colour
+            variant_id=size, 
+            id=colour
         )
         
-        # 3. STOCK CHECK
         if quantity > vc.stock:
             return Response({
                 "error": f"Only {vc.stock} items left in stock for this color/size combination.",
                 "available_stock": vc.stock
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 4. (Optional) Check existing cart quantity
-        # If they already have 2 in cart and are adding 3, check if 5 > stock
         existing_item = CartItem.objects.filter(
             cart__user=request.user, 
-            variant_colour=vc
+            colour=vc
         ).first()
         
         total_would_be = quantity
@@ -128,9 +121,10 @@ class CartItemAPIView(NewAPIView):
             }, status=status.HTTP_400_BAD_REQUEST)
             
         
-        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product, variant=variant, colour=vc, defaults={'quantity': quantity})
         if not created:
             cart_item.quantity += quantity
             cart_item.save()
         
         return Response({"message": "Product added to cart successfully"}, status=status.HTTP_201_CREATED)
+
