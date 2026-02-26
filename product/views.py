@@ -103,7 +103,7 @@ class CategoryDetailAPIView(NewAPIView):
 # Product List
 class ProductsAPIView(NewAPIView):
     queryset = Product.objects.select_related('category') \
-            .prefetch_related('sizes', 'images') \
+            .prefetch_related('variants', 'images') \
             .annotate(
                 total_sold=Coalesce(Sum('order__quantity'), 0), 
                 avg_rating=Coalesce(Avg('reviews__rating'), 0)
@@ -128,7 +128,7 @@ class ProductsAPIView(NewAPIView):
         '''
         query = request.GET.get('ordering', '-created_at')
         queryset = Product.objects.select_related('category') \
-            .prefetch_related('sizes', 'images') \
+            .prefetch_related('variants', 'images') \
             .annotate(
                 total_sold=Sum('order__quantity'), 
                 avg_rating=Avg('reviews__rating')
@@ -140,7 +140,7 @@ class ProductsAPIView(NewAPIView):
 
         # 3. PAGINATION LOGIC
         paginator = PageNumberPagination()
-        paginator.page_size = 2 # You can set this dynamically or in settings
+        paginator.page_size = 6 # You can set this dynamically or in settings
         
         # This actually slices the queryset (LIMIT/OFFSET)
         page = paginator.paginate_queryset(queryset, request)
