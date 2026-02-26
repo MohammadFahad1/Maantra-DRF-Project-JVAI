@@ -1,22 +1,14 @@
-import django_filters
-from .models import Product
+from django_filters import rest_framework as filters
+from product.models import Product, Category
 
-class ProductFilter(django_filters.FilterSet):
-    # Explicitly define date filters to handle string-to-date conversion
-    created_at__gte = django_filters.DateFilter(field_name='created_at', lookup_expr='gte')
-    created_at__lte = django_filters.DateFilter(field_name='created_at', lookup_expr='lte')
-
-    sort = django_filters.OrderingFilter(
-        fields=(
-            ('price', 'price'),
-            ('created_at', 'date'),
-            ('total_sold', 'best_selling'),
-        ),
-    )
-    
+class ProductFilter(filters.FilterSet):
+    # category_id = filters.ModelChoiceFilter(
+    #     queryset = Category.objects.all(),
+    #     to_field_name = 'id',
+    # )
+    category_id = filters.NumberFilter(field_name='category_id', lookup_expr='exact')
     class Meta:
         model = Product
         fields = {
-            'price': ['gte', 'lte'],
-            'category': ['exact'],
+            'category_id': ['exact'],
         }
