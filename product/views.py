@@ -9,6 +9,8 @@ from .filters import ProductFilter
 from django.db.models import Sum, Avg
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models.functions import Coalesce
+from product.paginations import ProductListPagination
+from rest_framework.pagination import PageNumberPagination
 
 # Category List
 class CategoryListAPIView(NewAPIView):
@@ -112,6 +114,7 @@ class ProductsAPIView(NewAPIView):
     search_fields = ['name']
     ordering_fields = ['price', 'created_at', 'total_sold']
     ordering = ['-created_at']
+    pagination_class = ProductListPagination
     http_method_names = ['get']
     
     def get(self, request):
@@ -130,6 +133,23 @@ class ProductsAPIView(NewAPIView):
                 total_sold=Sum('order__quantity'), 
                 avg_rating=Avg('reviews__rating')
             ).order_by(query)
+            
+        # 2. Apply Filters (The loop we discussed earlier)
+        for backend in list(self.filter_backends):
+            queryset = backend().filter_queryset(request, queryset, self)
+
+        # 3. PAGINATION LOGIC
+        paginator = PageNumberPagination()
+        paginator.page_size = 2 # You can set this dynamically or in settings
+        
+        # This actually slices the queryset (LIMIT/OFFSET)
+        page = paginator.paginate_queryset(queryset, request)
+        
+        if page is not None:
+            serializer = ProductSerializer(page, many=True)
+            # This helper method returns the 'count', 'next', 'previous' JSON structure
+            return paginator.get_paginated_response(serializer.data)
+            
         serializer = ProductSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
