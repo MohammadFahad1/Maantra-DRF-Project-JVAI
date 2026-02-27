@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer
+from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer
 from maantra.base import NewAPIView
 from order.models import Cart, CartItem
 from product.models import Product, VariantColour, Variant
@@ -128,4 +128,53 @@ class CartItemAPIView(NewAPIView):
             cart_item.save()
         
         return Response({"message": "Product added to cart successfully"}, status=status.HTTP_201_CREATED)
+    
+# Update Cart Item Quantity
+class UpdateCartItemQuantityAPIView(NewAPIView):
+    serializer_class = UpdateCartItemQuantitySerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['patch']
+    
+    def patch(self, request):
+        ''' 
+        **Update Cart Item Quantity **\n
+        It will update the quantity of a cart item. Only authenticated user (after logging in) can use this API. Request Type: PATCH
+        
+        Required Fields: \n
+        - cart_item_id \n
+        - quantity \n
+        '''
+        cart_item_id = request.data.get('cart_item_id')
+        quantity = int(request.data.get('quantity'))
+        cart_item = get_object_or_404(CartItem, id=cart_item_id)
+        if quantity <= 0:
+            return Response({"error": "Quantity must be greater than 0"}, status=status.HTTP_400_BAD_REQUEST)
+        if cart_item.cart.user != request.user:
+            return Response({"error": "You are not authorized to update this cart item"}, status=status.HTTP_403_FORBIDDEN)
+        # if cart_item.quantity + quantity > cart_item.colour.stock:
+        if quantity > cart_item.colour.stock:
+            return Response({"error": f"Sorry, We don't have {quantity} stock for this color/size combination."}, status=status.HTTP_400_BAD_REQUEST)
+            # return Response({"error": f"You already have {cart_item.quantity} in cart. Adding {quantity} more exceeds available stock."}, status=status.HTTP_400_BAD_REQUEST)
+        # cart_item.quantity += quantity
+        cart_item.quantity = quantity
+        cart_item.save()
+        return Response({"message": "Cart item quantity updated successfully", "data": CartItemSerializer(cart_item).data}, status=status.HTTP_200_OK)
 
+# Delete Cart Item
+class DeleteCartItem(NewAPIView):
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['delete']
+    
+    def delete(self, request, cart_item_id):
+        ''' 
+        **Delete Cart Item **\n
+        It will delete a cart item. Only authenticated user (after logging in) can use this API. Request Type: DELETE
+        
+        Required Fields: \n
+        - cart_item_id \n
+        '''
+        cart_item = get_object_or_404(CartItem, id=cart_item_id)
+        if cart_item.cart.user != request.user:
+            return Response({"error": "You are not authorized to delete this cart item"}, status=status.HTTP_403_FORBIDDEN)
+        cart_item.delete()
+        return Response({"message": "Cart item deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
