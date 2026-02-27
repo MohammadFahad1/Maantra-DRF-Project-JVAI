@@ -1,7 +1,7 @@
 from django.shortcuts import render
-from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer
+from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer
 from maantra.base import NewAPIView
-from order.models import Cart, CartItem
+from order.models import Cart, CartItem, Coupon
 from product.models import Product, VariantColour, Variant
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -180,19 +180,41 @@ class DeleteCartItem(NewAPIView):
         return Response({"message": "Cart item deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
 # Apply Coupon
-# class ApplyCoupon(NewAPIView):
-#     serializer_class = ApplyCouponSerializer
-#     permission_classes = [IsAuthenticated]
-#     http_method_names = ['post']
+class ApplyCoupon(NewAPIView):
+    serializer_class = ApplyCouponSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['post', 'delete']
     
-#     def post(self, request):
-#         ''' 
-#         **Apply Coupon **\n
-#         It will apply a coupon to the user's cart. Only authenticated user (after logging in) can use this API. Request Type: POST
+    def post(self, request):
+        ''' 
+        **Apply Coupon **\n
+        It will apply a coupon to the user's cart. Only authenticated user (after logging in) can use this API. Request Type: POST
         
-#         Required Fields: \n
-#         - coupon_code \n
-#         '''
-#         serializer = self.get_serializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         return Response({"message": "Coupon applied successfully"}, status=status.HTTP_200_OK)
+        If the coupon is applied successfully then, it will return the updated cart and the message "Coupon applied successfully" and the status code will be 200 OK.
+        
+        Required Fields: \n
+        - coupon_code \n
+        '''
+        coupon = get_object_or_404(Coupon, code=request.data.get('coupon_code'))
+        cart = get_object_or_404(Cart, user=request.user)
+        if coupon.active == False:
+            return Response({"error": "Coupon is expired"}, status=status.HTTP_400_BAD_REQUEST)
+        if cart.coupon:
+            return Response({"error": "You already have a coupon applied to your cart"}, status=status.HTTP_400_BAD_REQUEST)
+        cart.coupon = coupon
+        cart.save()
+        serializer = CartSerializer(cart)
+        return Response({"message": "Coupon applied successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+    
+    def delete(self, request):
+        ''' 
+        **Remove Coupon **\n
+        It will remove the coupon from the user's cart. Only authenticated user (after logging in) can use this API. Request Type: DELETE
+        
+        If the coupon is removed successfully then, it will return the updated cart and the message "Coupon removed successfully" and the status code will be 200 OK.
+        '''
+        cart = get_object_or_404(Cart, user=request.user)
+        serializer = CartSerializer(cart)
+        cart.coupon = None
+        cart.save()
+        return Response({"message": "Coupon removed successfully", "data": serializer.data}, status=status.HTTP_200_OK)

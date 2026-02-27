@@ -31,14 +31,19 @@ class CartItemSerializer(serializers.ModelSerializer):
         
     def get_subtotal(self, cartitem):
         return cartitem.product.get_price() * cartitem.quantity
-        
+
+class CouponSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Coupon
+        fields = ['id', 'code', 'discount_percentage', 'discount_amount']
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
     total_price = serializers.SerializerMethodField()
+    coupon = CouponSerializer(many=False, read_only=True)
     class Meta:
         model = Cart
-        fields = ['id', 'user', 'items', 'total_price']
+        fields = ['id', 'user', 'items', 'coupon', 'total_price']
         
         extra_kwargs = {
             'user': {'read_only': True},
@@ -46,7 +51,15 @@ class CartSerializer(serializers.ModelSerializer):
         }
         
     def get_total_price(self, cart):
-        return sum([item.product.get_price() * item.quantity for item in cart.items.all()])
+        total = sum([item.product.get_price() * item.quantity for item in cart.items.all()])
+        
+        if cart.coupon and cart.coupon.active:
+            if cart.coupon.discount_percentage:
+                total -= (total * cart.coupon.discount_percentage / 100)
+            elif cart.coupon.discount_amount:
+                total -= cart.coupon.discount_amount
+        
+        return max(total, 0)
         
 
 class CreateCartSerializer(serializers.ModelSerializer):
@@ -70,7 +83,8 @@ class UpdateCartItemQuantitySerializer(serializers.ModelSerializer):
         model = CartItem
         fields = ['cart_item_id', 'quantity']
 
-
+class ApplyCouponSerializer(serializers.Serializer):
+    coupon_code = serializers.CharField(max_length=50)
 
 
 
