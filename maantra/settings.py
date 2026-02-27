@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "debug_toolbar",
     'drf_yasg',
     'rest_framework',
+    'corsheaders',
     'djoser',
     'social_django',
     'rest_framework_simplejwt',
@@ -52,6 +53,15 @@ INSTALLED_APPS = [
     'api',
     'product',
     'order',
+]
+
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
+STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET')
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
 ]
 
 MIDDLEWARE = [
@@ -64,6 +74,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "debug_toolbar.middleware.DebugToolbarMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
 
 ]
 

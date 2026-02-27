@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem, Coupon, Cart, CartItem, Refund
+from .models import Order, OrderItem, Coupon, Cart, CartItem, Refund, Payment
 from product.models import Product
 from product.serializers import ProductVariantSerializer, ProductImageSerializer
 
@@ -86,6 +86,14 @@ class UpdateCartItemQuantitySerializer(serializers.ModelSerializer):
 class ApplyCouponSerializer(serializers.Serializer):
     coupon_code = serializers.CharField(max_length=50)
 
-
+class PaymentSerializer(serializers.ModelField):
+    class Meta:
+        model = Payment
+        fields = ['id', 'user_email', 'order', 'amount', 'currency', 'payment_id', 'created_at', 'updated_at']
+        
+        extra_kwargs = {
+                'created_at': {'read_only': True},
+                'updated_at': {'read_only': True},
+            }
 
 

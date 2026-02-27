@@ -1,12 +1,18 @@
 from django.shortcuts import render
-from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer
+from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer
 from maantra.base import NewAPIView
-from order.models import Cart, CartItem, Coupon
+from order.models import Cart, CartItem, Coupon, Payment, Order
 from product.models import Product, VariantColour, Variant
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+import stripe
+from django.conf import settings
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
 # Create or Get Cart
 class CartAPIView(NewAPIView):
     serializer_class = CreateCartSerializer
@@ -219,7 +225,38 @@ class ApplyCoupon(NewAPIView):
         cart.save()
         return Response({"message": "Coupon removed successfully", "data": serializer.data}, status=status.HTTP_200_OK)
 
-        
+# Create Payment Intent View
+# class CreateCheckoutSessionView(APIView):
+
+#     def post(self, request, order_id):
+#         order = get_object_or_404(Order, id=order_id)
+
+#         if order.status != "pending":
+#             return Response({"error": "Order already processed"}, status=400)
+
+#         session = stripe.checkout.Session.create(
+#             payment_method_types=["card"],
+#             line_items=[
+#                 {
+#                     "price_data": {
+#                         "currency": "usd",
+#                         "product_data": {
+#                             "name": f"Order #{order.order_number}",
+#                         },
+#                         "unit_amount": int(order.total_amount * 100),
+#                     },
+#                     "quantity": 1,
+#                 }
+#             ],
+#             mode="payment",
+#             success_url="http://localhost:3000/success",
+#             cancel_url="http://localhost:3000/cancel",
+#             metadata={
+#                 "order_id": order.id
+#             }
+#         )
+
+#         return Response({"checkout_url": session.url})
 
 
 

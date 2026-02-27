@@ -85,6 +85,15 @@ class OrderStatusHistory(models.Model):
     class Meta:
         ordering = ["created_at"]
 
+class Payment(models.Model):
+    user_email = models.EmailField()
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='payment')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(1)])
+    currency = models.CharField(max_length=3, default='USD')
+    payment_id = models.CharField(max_length=100, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
 class Refund(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='refunds')
     reason = models.TextField()
