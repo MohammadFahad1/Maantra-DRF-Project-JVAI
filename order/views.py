@@ -178,3 +178,4 @@ class DeleteCartItem(NewAPIView):
             return Response({"error": "You are not authorized to delete this cart item"}, status=status.HTTP_403_FORBIDDEN)
         cart_item.delete()
         return Response({"message": "Cart item deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
