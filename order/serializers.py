@@ -86,6 +86,19 @@ class UpdateCartItemQuantitySerializer(serializers.ModelSerializer):
 class ApplyCouponSerializer(serializers.Serializer):
     coupon_code = serializers.CharField(max_length=50)
 
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['id', 'user', 'cart', 'created_at', 'updated_at']
+        
+        extra_kwargs = {
+                'created_at': {'read_only': True},
+                'updated_at': {'read_only': True},
+            }
+
+class CreateOrderSerializer(serializers.Serializer):
+    cart_id = serializers.IntegerField()
+
 class PaymentSerializer(serializers.ModelField):
     class Meta:
         model = Payment
@@ -95,5 +108,6 @@ class PaymentSerializer(serializers.ModelField):
                 'created_at': {'read_only': True},
                 'updated_at': {'read_only': True},
             }
+
 
 

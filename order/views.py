@@ -1,7 +1,7 @@
 from django.shortcuts import render
-from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer
+from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer, CreateOrderSerializer, OrderSerializer
 from maantra.base import NewAPIView
-from order.models import Cart, CartItem, Coupon, Payment, Order
+from order.models import Cart, CartItem, Coupon, Payment, Order, OrderItem, OrderStatusHistory
 from product.models import Product, VariantColour, Variant
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -224,6 +224,57 @@ class ApplyCoupon(NewAPIView):
         cart.coupon = None
         cart.save()
         return Response({"message": "Coupon removed successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+
+class CreateOrder(NewAPIView):
+    serializer_class = CreateOrderSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['post']
+    
+    def post(self, request):
+        ''' 
+        **Create Order **\n
+        It will create an order for the user. Only authenticated user (after logging in) can use this API. Request Type: POST
+        
+        If the order is created successfully then, it will return the order and the message "Order created successfully" and the status code will be 200 OK.
+        '''
+        from django.db import transaction
+        with transaction.atomic():
+            cart = get_object_or_404(Cart, user=request.user)
+            if not cart.items.exists():
+                return Response({"error": "Your cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
+            coupon = cart.coupon
+            status = "Order Placed"
+            total_price = CartSerializer(cart).get_total_price(cart)
+            
+            order = Order.objects.create(user=request.user, status=status, total_price=total_price, coupon=coupon)
+            OrderStatusHistory.objects.create(order=order, status=status)
+            
+            for item in cart.items.all():
+                OrderItem.objects.create(order=order, product=item.product, price=item.product.get_price(), variant=item.variant, colour=item.colour, quantity=item.quantity, subtotal=item.subtotal())
+                item.colour.stock -= item.quantity
+                item.colour.save()
+            cart.delete()
+            
+            return Response({"message": "Order created successfully"})
+        
+        """
+        order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+        product = models.ForeignKey(Product, on_delete = models.CASCADE, related_name='order')
+        price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(1)])
+        variant = models.ForeignKey(Variant, on_delete=models.CASCADE, related_name='orderitem')
+        colour = models.ForeignKey(VariantColour, on_delete=models.CASCADE, related_name='orderitem')
+        quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
+        subtotal = m
+        """
+        
+        # order = Order.objects.create(user=request.user, cart=cart)
+        # return Response({"message": "Order created successfully", "data": OrderSerializer(order).data}, status=status.HTTP_201_CREATED)
+        
+        # serializer = CreateOrderSerializer(data=request.data, context={'cart': cart})
+        # if serializer.is_valid():
+        #     order = serializer.save()
+        #     return Response({"message": "Order created successfully", "data": OrderSerializer(order).data}, status=status.HTTP_201_CREATED)
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # Create Payment Intent View
 # class CreateCheckoutSessionView(APIView):

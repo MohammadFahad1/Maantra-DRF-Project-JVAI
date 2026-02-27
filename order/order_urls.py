@@ -1,5 +1,6 @@
-from django.urls import path, include
+from django.urls import path
+from order.views import CreateOrder
 
 urlpatterns = [
-    # path("", include("order.cart_urls")),
+    path("create/", CreateOrder.as_view(), name="create-order"),
 ]
