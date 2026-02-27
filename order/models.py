@@ -12,6 +12,9 @@ class Coupon(models.Model):
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.code} - " + (f"{self.discount_percentage}% Off" if self.discount_percentage else f"${self.discount_amount} Off")
 
 class Cart(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='cart')

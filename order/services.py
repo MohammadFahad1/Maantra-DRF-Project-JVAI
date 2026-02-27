@@ -1,6 +1,9 @@
 from django.db import transaction
 
 VALID_STATUS = ['Order Placed', 'Order Confirmed', 'Order Delivered']
+
+
+
 def update_order_status(order, new_status, updated_by=None):
     from .models import OrderStatusHistory
     

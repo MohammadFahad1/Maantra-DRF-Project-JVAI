@@ -179,3 +179,20 @@ class DeleteCartItem(NewAPIView):
         cart_item.delete()
         return Response({"message": "Cart item deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
+# Apply Coupon
+# class ApplyCoupon(NewAPIView):
+#     serializer_class = ApplyCouponSerializer
+#     permission_classes = [IsAuthenticated]
+#     http_method_names = ['post']
+    
+#     def post(self, request):
+#         ''' 
+#         **Apply Coupon **\n
+#         It will apply a coupon to the user's cart. Only authenticated user (after logging in) can use this API. Request Type: POST
+        
+#         Required Fields: \n
+#         - coupon_code \n
+#         '''
+#         serializer = self.get_serializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         return Response({"message": "Coupon applied successfully"}, status=status.HTTP_200_OK)
