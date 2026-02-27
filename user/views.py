@@ -1,6 +1,6 @@
 import random
 import uuid
-from .serializers import UserSerializer, UserLoginSerializer, ForgotPasswordSerializer, VerifyOTPSerializer, ResetPasswordSerializer
+from .serializers import UserSerializer, UserLoginSerializer, ForgotPasswordSerializer, VerifyOTPSerializer, ResetPasswordSerializer, CreateAddressSerializer
 from rest_framework import status
 from django.contrib.auth import get_user_model, authenticate
 from maantra.base import NewAPIView
@@ -9,6 +9,8 @@ from rest_framework.response import Response
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
+from user.models import Address
+from rest_framework.permissions import IsAuthenticated
 from user.tasks import send_otp_email
 User = get_user_model()
 
@@ -184,3 +186,31 @@ class ResetPasswordAPIView(NewAPIView):
             return Response({"message": "Password reset successfully"})
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CreateAddress(NewAPIView):
+    queryset = Address.objects.all()
+    serializer_class = CreateAddressSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post']
+    
+    def get(self, request):
+        addresses = self.queryset.filter(user=request.user).order_by('-is_primary')
+        serializer = self.serializer_class(addresses, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    def post(self, request):
+        serializer = CreateAddressSerializer(data=request.data)
+        if serializer.is_valid():
+            is_primary = serializer.validated_data.get('is_primary', False)
+
+            if not Address.objects.filter(user=request.user).exists():
+                is_primary = True
+            
+            if is_primary:
+                Address.objects.filter(user=request.user, is_primary=True).update(is_primary=False)
+
+            serializer.save(user=request.user, is_primary=is_primary)
+            
+            return Response({"message": "Address created successfully"}, status=201)
+        
+        return Response(serializer.errors, status=400)
