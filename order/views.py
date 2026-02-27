@@ -218,3 +218,28 @@ class ApplyCoupon(NewAPIView):
         cart.coupon = None
         cart.save()
         return Response({"message": "Coupon removed successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+
+# Checkout
+class Checkout(NewAPIView):
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['post']
+    
+    def post(self, request):
+        ''' 
+        **Checkout **\n
+        It will checkout the user's cart. Only authenticated user (after logging in) can use this API. Request Type: POST
+        
+        If the checkout is successful then, it will return the updated cart and the message "Checkout successful" and the status code will be 200 OK.
+        '''
+        cart = get_object_or_404(Cart, user=request.user)
+        
+
+
+
+
+
+
+
+
+
+
