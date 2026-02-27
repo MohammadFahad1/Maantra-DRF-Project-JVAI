@@ -194,11 +194,43 @@ class CreateAddress(NewAPIView):
     http_method_names = ['get', 'post']
     
     def get(self, request):
+        ''' 
+        **Get Addresses of User.** \n
+        
+        It will return all addresses.
+        The primary address will be first in the list.
+        - It's a GET Request.
+        - If the addresses are found then the status code will be 200 OK.
+        - If the addresses are not found then the status code will be 400 Bad Request.
+        
+        Required Fields: \n
+        - None
+        '''
         addresses = self.queryset.filter(user=request.user).order_by('-is_primary')
         serializer = self.serializer_class(addresses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
         
     def post(self, request):
+        ''' 
+        **Create Address for User.** \n
+        
+        It will create a new address.
+        
+        - It's a POST Request.
+        - If the address is created then the status code will be 201 Created.
+        - If the address already exists then the status code will be 400 Bad Request.
+        
+        After Creating Address, It will return Address Data with 201 Created Response and a message "Address created successfully".
+        
+        Required Fields: \n
+        - contact
+        - country
+        - first_name
+        - last_name
+        - address
+        - details
+        - is_primary
+        '''
         serializer = CreateAddressSerializer(data=request.data)
         if serializer.is_valid():
             is_primary = serializer.validated_data.get('is_primary', False)
@@ -211,6 +243,6 @@ class CreateAddress(NewAPIView):
 
             serializer.save(user=request.user, is_primary=is_primary)
             
-            return Response({"message": "Address created successfully"}, status=201)
+            return Response({"message": "Address created successfully", "data": serializer.data}, status=201)
         
         return Response(serializer.errors, status=400)

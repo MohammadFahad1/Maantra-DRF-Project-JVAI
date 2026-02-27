@@ -16,7 +16,7 @@ schema_view = get_schema_view(
         default_version='v1',
         description="Base URL: http://127.0.0.1:8000/api/v1/",
         terms_of_service="https://www.google.com/policies/terms/",
-        contact=openapi.Contact(email="contact@snippets.local"),
+        contact=openapi.Contact(email="info@fahadbd.com"),
         license=openapi.License(name="BSD License"),
    ),
    public=True,
@@ -31,6 +31,7 @@ urlpatterns = [
     path("products/", include("product.urls"), name="product"),
     path("categories/", include("product.category_urls"), name="category"),
     path("cart/", include("order.cart_urls"), name="cart"),
+    path("orders/", include("order.order_urls"), name="order"),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
