@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer, CreateOrderSerializer, OrderSerializer
+from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer, CreateOrderSerializer, OrderSerializer, CreateCheckoutSessionSerializer
 from maantra.base import NewAPIView
 from order.models import Cart, CartItem, Coupon, Payment, Order, OrderItem, OrderStatusHistory
 from user.models import Address
@@ -263,6 +263,8 @@ class CreateOrder(NewAPIView):
             return Response({"message": "Order created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
 
 class CreateCheckoutSessionView(NewAPIView):
+    serializer_class = CreateCheckoutSessionSerializer
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, order_id):
         ''' 
@@ -306,7 +308,7 @@ class CreateCheckoutSessionView(NewAPIView):
 @csrf_exempt
 def stripe_webhook(request):
     payload = request.body
-    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE") # Use .get to avoid KeyErrors
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
 
     try:
         event = stripe.Webhook.construct_event(
@@ -321,13 +323,13 @@ def stripe_webhook(request):
         session = event["data"]["object"]
         order_id = session["metadata"]["order_id"]
 
-        from .models import Order, Payment, OrderStatusHistory # Added missing imports
+        from .models import Order, Payment, OrderStatusHistory
         from django.db import transaction
         
         with transaction.atomic():
             order = Order.objects.get(id=order_id)
             order.status = 'Order Confirmed'
-            order.save() # 👈 Don't forget to save the order!
+            order.save() 
 
             Payment.objects.create(
                 order=order, 
@@ -340,5 +342,20 @@ def stripe_webhook(request):
 
     return HttpResponse(status=200)
 
-
+# Order List API View
+class OrderListAPIView(NewAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get']
+    
+    def get(self, request):
+        ''' 
+        **Get Order List **\n
+        It will get the list of orders for the user. Only authenticated user (after logging in) can use this API. Request Type: GET
+        
+        If the order list is fetched successfully then, it will return the order list and the status code will be 200 OK.
+        '''
+        orders = Order.objects.filter(user=request.user)
+        serializer = OrderSerializer(orders, many=True)
+        return Response({"message": "Order list fetched successfully", "data": serializer.data}, status=status.HTTP_200_OK)
 

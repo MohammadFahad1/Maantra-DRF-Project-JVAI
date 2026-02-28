@@ -110,6 +110,9 @@ class CreateOrderSerializer(serializers.Serializer):
     cart_id = serializers.IntegerField()
     shipping_address_id = serializers.IntegerField()
 
+class CreateCheckoutSessionSerializer(serializers.Serializer):
+    pass
+
 class PaymentSerializer(serializers.ModelField):
     class Meta:
         model = Payment
