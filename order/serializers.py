@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Order, OrderItem, Coupon, Cart, CartItem, Refund, Payment
 from product.models import Product
+from user.serializers import AddressSerializer
 from product.serializers import ProductVariantSerializer, ProductImageSerializer
 
 class SimpleProductSerializer(serializers.ModelSerializer):
@@ -86,10 +87,19 @@ class UpdateCartItemQuantitySerializer(serializers.ModelSerializer):
 class ApplyCouponSerializer(serializers.Serializer):
     coupon_code = serializers.CharField(max_length=50)
 
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    product = SimpleProductSerializer(many=False, read_only=True)
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'product', 'price', 'variant', 'colour', 'quantity', 'subtotal']
+
 class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    shipping_address = AddressSerializer(many=False, read_only=True)
     class Meta:
         model = Order
-        fields = ['id', 'user', 'cart', 'created_at', 'updated_at']
+        fields = ['id', 'user', 'coupon', 'shipping_address', 'status', 'total_price', 'items', 'created_at', 'updated_at']
         
         extra_kwargs = {
                 'created_at': {'read_only': True},
@@ -98,6 +108,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class CreateOrderSerializer(serializers.Serializer):
     cart_id = serializers.IntegerField()
+    shipping_address_id = serializers.IntegerField()
 
 class PaymentSerializer(serializers.ModelField):
     class Meta:

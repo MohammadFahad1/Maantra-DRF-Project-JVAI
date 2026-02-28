@@ -2,6 +2,7 @@ from django.shortcuts import render
 from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer, CreateOrderSerializer, OrderSerializer
 from maantra.base import NewAPIView
 from order.models import Cart, CartItem, Coupon, Payment, Order, OrderItem, OrderStatusHistory
+from user.models import Address
 from product.models import Product, VariantColour, Variant
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -242,12 +243,13 @@ class CreateOrder(NewAPIView):
             cart = get_object_or_404(Cart, user=request.user)
             if not cart.items.exists():
                 return Response({"error": "Your cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
+            shipping_address = Address.objects.get(id=request.data.get('shipping_address_id'))
             coupon = cart.coupon
-            status = "Order Placed"
+            order_status = "Order Placed"
             total_price = CartSerializer(cart).get_total_price(cart)
             
-            order = Order.objects.create(user=request.user, status=status, total_price=total_price, coupon=coupon)
-            OrderStatusHistory.objects.create(order=order, status=status)
+            order = Order.objects.create(user=request.user, status=order_status, total_price=total_price, coupon=coupon, shipping_address=shipping_address)
+            OrderStatusHistory.objects.create(order=order, status=order_status)
             
             for item in cart.items.all():
                 OrderItem.objects.create(order=order, product=item.product, price=item.product.get_price(), variant=item.variant, colour=item.colour, quantity=item.quantity, subtotal=item.subtotal())
@@ -255,7 +257,8 @@ class CreateOrder(NewAPIView):
                 item.colour.save()
             cart.delete()
             
-            return Response({"message": "Order created successfully"})
+            serializer = OrderSerializer(order)
+            return Response({"message": "Order created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
         
         """
         order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
