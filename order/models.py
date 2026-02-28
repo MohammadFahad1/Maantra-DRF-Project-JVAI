@@ -93,7 +93,6 @@ class OrderStatusHistory(models.Model):
         return f"Order #{self.order.id} - {self.status}"
 
 class Payment(models.Model):
-    user_email = models.EmailField()
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='payment')
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(1)])
     currency = models.CharField(max_length=3, default='USD')
