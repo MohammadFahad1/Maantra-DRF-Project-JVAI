@@ -1,7 +1,7 @@
 from django.shortcuts import render
-from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer, CreateOrderSerializer, OrderSerializer, CreateCheckoutSessionSerializer
+from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer, CreateOrderSerializer, OrderSerializer, CreateCheckoutSessionSerializer, RefundSerializer, RefundApplySerializer
 from maantra.base import NewAPIView
-from order.models import Cart, CartItem, Coupon, Payment, Order, OrderItem, OrderStatusHistory
+from order.models import Cart, CartItem, Coupon, Payment, Order, OrderItem, OrderStatusHistory, Refund
 from user.models import Address
 from product.models import Product, VariantColour, Variant
 from rest_framework.permissions import IsAuthenticated
@@ -360,22 +360,35 @@ class OrderListAPIView(NewAPIView):
         return Response({"message": "Order list fetched successfully", "data": serializer.data}, status=status.HTTP_200_OK)
 
 
-""" 
-# Make review API View
-class MakeReviewAPIView(NewAPIView):
-    serializer_class = ReviewSerializer
+# Apply for refund
+class ApplyForRefund(NewAPIView):
+    serializer_class = RefundApplySerializer
     permission_classes = [IsAuthenticated]
     http_method_names = ['post']
     
     def post(self, request):
         ''' 
-        **Make Review **\n
-        It will make a review for the product. Only authenticated user (after logging in) can use this API. Request Type: POST
+        **Apply for Refund **\n
+        It will apply for refund for the order. Only authenticated user (after logging in) can use this API. Request Type: POST
         
-        If the review is made successfully then, it will return the review and the status code will be 201 Created.
+        If the Refund applied successfully then, it will return the message "Refund applied successfully" and the status code will be 200 OK.
+        
+        Required Fields: \n
+        - order_id \n
+        - reason \n
+        - attachment (file, max size 5 MB)
         '''
-        product = get_object_or_404(Product, id=request.data.get('product_id'))
-        review = Review.objects.create(user=request.user, product=product, rating=request.data.get('rating'), comment=request.data.get('comment'))
-        serializer = ReviewSerializer(review)
-        return Response({"message": "Review made successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
-"""
+        order = get_object_or_404(Order, id=request.data.get('order_id'))
+        if order.status != "Order Confirmed":
+            return Response({"error": "Order not confirmed, You didn't paid for this order!"}, status=status.HTTP_400_BAD_REQUEST)
+        elif order.user != request.user:
+            return Response({"error": "You are not authorized to apply for refund"}, status=status.HTTP_400_BAD_REQUEST)
+        elif hasattr(order, 'refund'):
+            return Response({"error": "You have already applied for refund"}, status=status.HTTP_400_BAD_REQUEST)
+        Refund.objects.create(
+            order=order,
+            reason=request.data.get('reason'),
+            attachment=request.data.get('attachment')
+        )
+        return Response({"message": "Refund applied successfully"}, status=status.HTTP_200_OK)
+        

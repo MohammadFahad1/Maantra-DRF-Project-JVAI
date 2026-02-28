@@ -124,4 +124,21 @@ class PaymentSerializer(serializers.ModelField):
             }
 
 
+class RefundSerializer(serializers.ModelSerializer):
+    order = OrderSerializer(many=False, read_only=True)
+    order_id = serializers.IntegerField(write_only=True)
+    class Meta:
+        model = Refund
+        fields = ['id', 'order', 'order_id', 'reason', 'attachment', 'created_at', 'updated_at']
+        
+        extra_kwargs = {
+                'created_at': {'read_only': True},
+                'updated_at': {'read_only': True},
+                'order': {'read_only': True},
+            }
 
+class RefundApplySerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(write_only=True)
+    class Meta:
+        model = Refund
+        fields = ['order_id', 'reason', 'attachment']

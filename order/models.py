@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, MaxValueValidator
 from product.models import Product, Variant, VariantColour
 from user.models import Address
+from product.validators import validate_file_size
 User = get_user_model()
 
 # Create your models here.
@@ -101,8 +102,8 @@ class Payment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 class Refund(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='refunds')
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='refund')
     reason = models.TextField()
-    amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(1)])
+    attachment = models.FileField(upload_to='refunds/', validators=[validate_file_size])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
