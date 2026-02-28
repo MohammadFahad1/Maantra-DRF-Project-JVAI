@@ -10,6 +10,8 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 import stripe
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -259,65 +261,84 @@ class CreateOrder(NewAPIView):
             
             serializer = OrderSerializer(order)
             return Response({"message": "Order created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+
+class CreateCheckoutSessionView(NewAPIView):
+
+    def post(self, request, order_id):
+        ''' 
+        ** Make Payment Using Stripe to Create Checkout Session **\n
+        It will create a checkout session for the user. Only authenticated user (after logging in) can use this API. Request Type: POST
         
-        """
-        order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-        product = models.ForeignKey(Product, on_delete = models.CASCADE, related_name='order')
-        price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(1)])
-        variant = models.ForeignKey(Variant, on_delete=models.CASCADE, related_name='orderitem')
-        colour = models.ForeignKey(VariantColour, on_delete=models.CASCADE, related_name='orderitem')
-        quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
-        subtotal = m
-        """
+        If the checkout session is created successfully then, it will return the checkout url and the status code will be 200 OK.
         
-        # order = Order.objects.create(user=request.user, cart=cart)
-        # return Response({"message": "Order created successfully", "data": OrderSerializer(order).data}, status=status.HTTP_201_CREATED)
+        Required Fields: \n
+        - order_id
+        '''
+        order = get_object_or_404(Order, id=order_id)
+
+        if order.status != "Order Placed":
+            return Response({"error": "Order already processed"}, status=400)
+
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
+                            "name": f"Order #{order.id}- {order.user.email} - {order.status}",
+                        },
+                        "unit_amount": int(order.total_price * 100),
+                    },
+                    "quantity": 1,
+                }
+            ],
+            mode="payment",
+            success_url="http://localhost:3000/success",
+            cancel_url="http://localhost:3000/cancel",
+            metadata={
+                "order_id": order.id
+            }
+        )
+
+        return Response({"checkout_url": session.url})
+
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE") # Use .get to avoid KeyErrors
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload,
+            sig_header,
+            settings.STRIPE_WEBHOOK_SECRET
+        )
+    except Exception:
+        return HttpResponse(status=400)
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        order_id = session["metadata"]["order_id"]
+
+        from .models import Order, Payment, OrderStatusHistory # Added missing imports
+        from django.db import transaction
         
-        # serializer = CreateOrderSerializer(data=request.data, context={'cart': cart})
-        # if serializer.is_valid():
-        #     order = serializer.save()
-        #     return Response({"message": "Order created successfully", "data": OrderSerializer(order).data}, status=status.HTTP_201_CREATED)
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            order = Order.objects.get(id=order_id)
+            order.status = 'Order Confirmed'
+            order.save() # 👈 Don't forget to save the order!
 
-# Create Payment Intent View
-# class CreateCheckoutSessionView(APIView):
+            Payment.objects.create(
+                order=order, 
+                amount=order.total_price, 
+                currency='USD', 
+                payment_id=session["payment_intent"]
+            )
+            
+            OrderStatusHistory.objects.create(order=order, status='Order Confirmed')
 
-#     def post(self, request, order_id):
-#         order = get_object_or_404(Order, id=order_id)
-
-#         if order.status != "pending":
-#             return Response({"error": "Order already processed"}, status=400)
-
-#         session = stripe.checkout.Session.create(
-#             payment_method_types=["card"],
-#             line_items=[
-#                 {
-#                     "price_data": {
-#                         "currency": "usd",
-#                         "product_data": {
-#                             "name": f"Order #{order.order_number}",
-#                         },
-#                         "unit_amount": int(order.total_amount * 100),
-#                     },
-#                     "quantity": 1,
-#                 }
-#             ],
-#             mode="payment",
-#             success_url="http://localhost:3000/success",
-#             cancel_url="http://localhost:3000/cancel",
-#             metadata={
-#                 "order_id": order.id
-#             }
-#         )
-
-#         return Response({"checkout_url": session.url})
-
-
-
-
-
-
-
+    return HttpResponse(status=200)
 
 
 
