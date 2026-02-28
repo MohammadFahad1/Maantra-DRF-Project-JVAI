@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer, CreateOrderSerializer, OrderSerializer, CreateCheckoutSessionSerializer, RefundSerializer, RefundApplySerializer
+from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer, CreateOrderSerializer, OrderSerializer, CreateCheckoutSessionSerializer, RefundSerializer, RefundApplySerializer, OrderStatusHistorySerializer
 from maantra.base import NewAPIView
 from order.models import Cart, CartItem, Coupon, Payment, Order, OrderItem, OrderStatusHistory, Refund
 from user.models import Address
@@ -381,6 +381,8 @@ class ApplyForRefund(NewAPIView):
         order = get_object_or_404(Order, id=request.data.get('order_id'))
         if order.status != "Order Confirmed":
             return Response({"error": "Order not confirmed, You didn't paid for this order!"}, status=status.HTTP_400_BAD_REQUEST)
+        elif order.status == "Order Delivered":
+            return Response({"error": "Order is delivered, You can't apply for refund now!"}, status=status.HTTP_400_BAD_REQUEST)
         elif order.user != request.user:
             return Response({"error": "You are not authorized to apply for refund"}, status=status.HTTP_400_BAD_REQUEST)
         elif hasattr(order, 'refund'):
@@ -391,4 +393,24 @@ class ApplyForRefund(NewAPIView):
             attachment=request.data.get('attachment')
         )
         return Response({"message": "Refund applied successfully"}, status=status.HTTP_200_OK)
+
+# Shipment status updata
+class ShipmentStatusList(NewAPIView):
+    serializer_class = None
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get']
+    
+    def get(self, request, order_id):
+        ''' 
+        **Get Shipment Status Update **\n
+        It will get the list of shipment status. Only authenticated user (after logging in) can use this API. Request Type: GET
         
+        If the shipment status list is fetched successfully then, it will return the shipment status list and the status code will be 200 OK.
+        
+        Required Fields: \n
+        - order_id
+        '''
+        order = get_object_or_404(Order, id=order_id)
+        shipment_status = OrderStatusHistory.objects.filter(order=order)
+        serializer = OrderStatusHistorySerializer(shipment_status, many=True)
+        return Response({"message": "Shipment status list fetched successfully", "data": serializer.data}, status=status.HTTP_200_OK)

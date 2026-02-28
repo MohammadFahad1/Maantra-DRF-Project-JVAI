@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem, Coupon, Cart, CartItem, Refund, Payment
+from .models import Order, OrderItem, Coupon, Cart, CartItem, Refund, Payment, OrderStatusHistory
 from product.models import Product
 from user.serializers import AddressSerializer
 from product.serializers import ProductVariantSerializer, ProductImageSerializer
@@ -142,3 +142,13 @@ class RefundApplySerializer(serializers.ModelSerializer):
     class Meta:
         model = Refund
         fields = ['order_id', 'reason', 'attachment']
+
+class OrderStatusHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderStatusHistory
+        fields = ['id', 'order', 'status', 'created_at', 'updated_at']
+        
+        extra_kwargs = {
+                'created_at': {'read_only': True},
+                'updated_at': {'read_only': True},
+            }

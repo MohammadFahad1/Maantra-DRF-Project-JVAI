@@ -89,6 +89,8 @@ class OrderStatusHistory(models.Model):
     
     class Meta:
         ordering = ["created_at"]
+        
+    unique_together = [['order', 'status']]
     
     def __str__(self):
         return f"Order #{self.order.id} - {self.status}"
