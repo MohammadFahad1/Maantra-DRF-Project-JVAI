@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from maantra.base import NewAPIView
-from product.serializers import ProductSerializer, ProductCreateSerializer, CategorySerializer
+from product.serializers import ProductSerializer, ProductCreateSerializer, CategorySerializer, ReviewSerializer, ReviewCreateSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from product.models import Product, ProductImage, Category, Review
@@ -233,3 +233,25 @@ class ProductDetailAPIView(NewAPIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Add Review for a product
+class CreateProductReview(NewAPIView):
+    serializer_class = ReviewCreateSerializer
+    
+    def post(self, request):
+        ''' 
+        ****Make Review **\n
+        It will make a review for the product. Only authenticated user (after logging in) can use this API. Request Type: POST
+        
+        If the review is made successfully then, it will return the review and the status code will be 201 Created.
+        
+        Required Fields: \n
+        - product_id \n
+        - rating \n
+        - complaint
+        '''
+        product = get_object_or_404(Product, id=request.data.get('product_id'))
+        review = Review.objects.create(user=request.user, product=product, rating=request.data.get('rating'), complaint=request.data.get('complaint'))
+        serializer = ReviewSerializer(review)
+        
+        return Response({"message": "Review made successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)

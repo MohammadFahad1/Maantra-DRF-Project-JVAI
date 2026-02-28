@@ -359,3 +359,23 @@ class OrderListAPIView(NewAPIView):
         serializer = OrderSerializer(orders, many=True)
         return Response({"message": "Order list fetched successfully", "data": serializer.data}, status=status.HTTP_200_OK)
 
+
+""" 
+# Make review API View
+class MakeReviewAPIView(NewAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['post']
+    
+    def post(self, request):
+        ''' 
+        **Make Review **\n
+        It will make a review for the product. Only authenticated user (after logging in) can use this API. Request Type: POST
+        
+        If the review is made successfully then, it will return the review and the status code will be 201 Created.
+        '''
+        product = get_object_or_404(Product, id=request.data.get('product_id'))
+        review = Review.objects.create(user=request.user, product=product, rating=request.data.get('rating'), comment=request.data.get('comment'))
+        serializer = ReviewSerializer(review)
+        return Response({"message": "Review made successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+"""

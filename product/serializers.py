@@ -14,13 +14,17 @@ class ProductImageSerializer(serializers.ModelSerializer):
         model = ProductImage
         fields = ['id', 'image']
 
+class ReviewCreateSerializer(serializers.Serializer):
+    product_id = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    rating = serializers.IntegerField(max_value=5, min_value=1)
+    complaint = serializers.CharField(max_length=500)
+
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
-        fields = ['id', 'product', 'user', 'rating', 'comment', 'created_at', 'updated_at']
+        fields = ['id', 'product', 'user', 'rating', 'complaint', 'created_at']
         extra_kwargs = {
             'created_at': {'read_only': True},
-            'updated_at': {'read_only': True},
         }
 
 class ProductVariantColourSerializer(serializers.ModelSerializer):
