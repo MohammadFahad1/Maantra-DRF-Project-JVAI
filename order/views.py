@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer, CreateOrderSerializer, OrderSerializer, CreateCheckoutSessionSerializer, RefundSerializer, RefundApplySerializer, OrderStatusHistorySerializer
+from order.serializers import CartSerializer, CreateCartSerializer, AddToCartSerializer, UpdateCartItemQuantitySerializer, CartItemSerializer, ApplyCouponSerializer, PaymentSerializer, CreateOrderSerializer, OrderSerializer, CreateCheckoutSessionSerializer, RefundSerializer, RefundApplySerializer, OrderStatusHistorySerializer, ShipmentStatusListSerializer
 from maantra.base import NewAPIView
 from order.models import Cart, CartItem, Coupon, Payment, Order, OrderItem, OrderStatusHistory, Refund
 from user.models import Address
@@ -396,7 +396,7 @@ class ApplyForRefund(NewAPIView):
 
 # Shipment status updata
 class ShipmentStatusList(NewAPIView):
-    serializer_class = None
+    serializer_class = ShipmentStatusListSerializer
     permission_classes = [IsAuthenticated]
     http_method_names = ['get']
     
